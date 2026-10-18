@@ -1,0 +1,9 @@
+[Unit]
+Description=Aizu Sync nightly backup (restic)
+After=network-online.target
+Wants=network-online.target
+[Service]
+Type=oneshot
+CacheDirectory=obsync-restic
+Environment=RESTIC_CACHE_DIR=/var/cache/obsync-restic
+ExecStart=/usr/local/sbin/obsync-backup

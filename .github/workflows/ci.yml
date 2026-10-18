@@ -1,0 +1,33 @@
+name: ci
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: server/go.mod
+          cache-dependency-path: server/go.sum
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: plugin/package-lock.json
+      - name: server
+        working-directory: server
+        run: |
+          go vet ./...
+          test -z "$(gofmt -l .)"
+          go test -race ./...
+      - name: plugin
+        working-directory: plugin
+        run: |
+          npm ci
+          npx tsc --noEmit -p .
+          npm run build
+          npx vitest run
+      - name: docker image builds
+        run: docker build -q -t obsyncd:ci server

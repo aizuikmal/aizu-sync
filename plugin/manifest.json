@@ -1,0 +1,9 @@
+{
+  "id": "aizu-sync",
+  "name": "Aizu Sync",
+  "version": "0.1.0",
+  "minAppVersion": "1.5.0",
+  "description": "End-to-end encrypted sync to your own server, with three-way merge and full version history.",
+  "author": "Aizu",
+  "isDesktopOnly": false
+}

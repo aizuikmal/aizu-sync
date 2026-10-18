@@ -1,0 +1,6 @@
+[Unit]
+Description=Aizu Sync weekly integrity check (sqlite + every blob hash)
+[Service]
+Type=oneshot
+User=obsync
+ExecStart=/usr/local/bin/obsyncd -data /var/lib/obsync verify

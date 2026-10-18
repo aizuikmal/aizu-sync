@@ -1,0 +1,4 @@
+.DS_Store
+PROGRESS.md
+deploy/Caddyfile
+deploy/.env

@@ -1,0 +1,20 @@
+# HTTPS front for obsyncd. Obsidian on iOS needs a certificate it trusts.
+# Pick ONE tls option below.
+
+{$SYNC_DOMAIN} {
+	# A) Server reachable from the internet on :443 (simplest): leave as is and
+	#    Caddy gets a Let's Encrypt certificate automatically.
+	#
+	# B) Private network only (recommended): the server isn't reachable from
+	#    outside, so prove the domain over DNS instead. Needs Caddy built with
+	#    your DNS provider's module (caddy-dns.Dockerfile) and DNS_API_TOKEN:
+	# tls {
+	# 	dns cloudflare {env.DNS_API_TOKEN}
+	# }
+	#
+	# C) No public domain at all: Caddy's own CA. Install Caddy's root
+	#    certificate (in the caddy-data volume) on every device.
+	# tls internal
+
+	reverse_proxy obsyncd:8787
+}

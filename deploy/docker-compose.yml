@@ -1,0 +1,38 @@
+# Aizu Sync server: obsyncd behind Caddy (HTTPS). See README "Run with Docker".
+#
+#   cp .env.example .env                  # SYNC_DOMAIN, BIND_ADDR
+#   cp Caddyfile.example Caddyfile        # pick a TLS option
+#   docker compose run --rm obsyncd init
+#   docker compose run --rm obsyncd set-passphrase -generate
+#   docker compose up -d --build
+#
+# Keep it off the public internet: bind Caddy to an address that only your own
+# devices can reach (a private network or VPN interface), not 0.0.0.0.
+services:
+  obsyncd:
+    build: ../server
+    image: aizu-sync/obsyncd:local
+    restart: unless-stopped
+    volumes:
+      - obsync-data:/data
+    # No published port: only Caddy talks to it, over the compose network.
+
+  caddy:
+    image: caddy:2
+    # For DNS-01 certificates on a private network, build Caddy with your DNS
+    # provider's plugin instead (see caddy-dns.Dockerfile):
+    # build: { context: ., dockerfile: caddy-dns.Dockerfile }
+    restart: unless-stopped
+    depends_on: [obsyncd]
+    ports:
+      - "${BIND_ADDR:-127.0.0.1}:443:443"
+    environment:
+      SYNC_DOMAIN: ${SYNC_DOMAIN:?set SYNC_DOMAIN, e.g. sync.example.com}
+      DNS_API_TOKEN: ${DNS_API_TOKEN:-}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+
+volumes:
+  obsync-data:
+  caddy-data:

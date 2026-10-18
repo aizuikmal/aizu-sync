@@ -1,0 +1,13 @@
+.aizu-sync-preview {
+  max-height: 16em;
+  overflow: auto;
+  white-space: pre-wrap;
+  font-size: var(--font-smaller);
+}
+.aizu-sync-preview:empty {
+  display: none;
+}
+.aizu-sync-error {
+  color: var(--text-error);
+  margin: 0 0 1em;
+}

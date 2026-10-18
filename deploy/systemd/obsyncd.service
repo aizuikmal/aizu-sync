@@ -1,0 +1,30 @@
+[Unit]
+Description=Aizu Sync server (obsyncd)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=obsync
+Group=obsync
+ExecStart=/usr/local/bin/obsyncd -data /var/lib/obsync serve -listen 127.0.0.1:8787
+Restart=always
+RestartSec=2
+UMask=0077
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/obsync
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+CapabilityBoundingSet=
+MemoryMax=256M
+
+[Install]
+WantedBy=multi-user.target
