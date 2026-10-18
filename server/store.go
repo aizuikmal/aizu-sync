@@ -69,6 +69,10 @@ CREATE TABLE IF NOT EXISTS versions(
 );
 CREATE INDEX IF NOT EXISTS versions_file ON versions(file_id, seq);
 CREATE INDEX IF NOT EXISTS versions_blob ON versions(blob_sha);
+CREATE TABLE IF NOT EXISTS settings(
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
 `
 
 func OpenStore(dataDir string) (*Store, error) {
@@ -166,6 +170,42 @@ func hashToken(tok string) string {
 // MaxDevices is the default for how many devices may hold an active token at once.
 // $OBSYNC_MAX_DEVICES changes the default; `device add -max N` overrides both.
 const MaxDevices = 10
+
+// DeviceLimit is the stored active-device limit (`device limit N`); 0 = none stored.
+func (s *Store) DeviceLimit() (int, error) {
+	var v string
+	err := s.db.QueryRow(`SELECT value FROM settings WHERE key = 'max_devices'`).Scan(&v)
+	if errors.Is(err, sql.ErrNoRows) {
+		return 0, nil
+	} else if err != nil {
+		return 0, err
+	}
+	return strconv.Atoi(v)
+}
+
+// SetDeviceLimit stores the limit; 0 removes it.
+func (s *Store) SetDeviceLimit(n int) error {
+	s.wmu.Lock()
+	defer s.wmu.Unlock()
+	if n <= 0 {
+		_, err := s.db.Exec(`DELETE FROM settings WHERE key = 'max_devices'`)
+		return err
+	}
+	_, err := s.db.Exec(`INSERT INTO settings(key, value) VALUES ('max_devices', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`, strconv.Itoa(n))
+	return err
+}
+
+// effectiveLimit: a stored limit always applies (raise it with `device limit`,
+// not with -max); otherwise -max, whose default is $OBSYNC_MAX_DEVICES or 10.
+func effectiveLimit(stored int, maxGiven bool, max int) (int, error) {
+	if stored > 0 {
+		if maxGiven && max != stored {
+			return 0, fmt.Errorf("this vault has a stored device limit of %d; change it with: obsyncd device limit N", stored)
+		}
+		return stored, nil
+	}
+	return max, nil
+}
 
 func maxDevices() int {
 	if n, err := strconv.Atoi(os.Getenv("OBSYNC_MAX_DEVICES")); err == nil && n > 0 {

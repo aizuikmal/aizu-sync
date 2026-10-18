@@ -169,7 +169,8 @@ obsyncd [-data DIR] serve [-listen 127.0.0.1:8787]
 obsyncd [-data DIR] init [-iters N]               create the vault (salt, KDF params)
 obsyncd [-data DIR] set-passphrase [-generate]    set the vault passphrase (once; never stored)
 obsyncd [-data DIR] set-key-check                 stdin: a key_check made elsewhere (advanced)
-obsyncd [-data DIR] device add [-max 10] NAME     prints the device token once
+obsyncd [-data DIR] device add [-max N] NAME      prints the device token once
+obsyncd [-data DIR] device limit [N]              show / store the active-device limit (0 = remove)
 obsyncd [-data DIR] device list
 obsyncd [-data DIR] device revoke NAME
 obsyncd [-data DIR] verify                        SQLite integrity check + re-hash every blob
@@ -177,7 +178,7 @@ obsyncd [-data DIR] snapshot OUT.db               consistent DB copy for backups
 obsyncd [-data DIR] gc [-apply]                   list (or remove) unreferenced blobs older than 1h
 ```
 
-`-data` defaults to `$OBSYNC_DATA`, otherwise `/var/lib/obsync`. `device add` refuses more active devices than `-max`, which defaults to `$OBSYNC_MAX_DEVICES`, otherwise 10. With Docker, run these as `docker compose exec obsyncd obsyncd …`.
+`-data` defaults to `$OBSYNC_DATA`, otherwise `/var/lib/obsync`. `device add` refuses to exceed the active-device limit. A limit stored with `device limit N` always applies; `-max` can't override it. Without a stored limit, `-max` applies, defaulting to `$OBSYNC_MAX_DEVICES`, otherwise 10. Revoking a device frees its slot. With Docker, run these as `docker compose exec obsyncd obsyncd …`.
 
 **Lost a device?** Run `device revoke NAME`. Its token stops working immediately.
 

@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -29,6 +30,7 @@ const usage = `obsyncd — aizu-sync server
   obsyncd [-data DIR] set-passphrase [-generate]  set the vault passphrase (once; never stored)
   obsyncd [-data DIR] set-key-check         stdin: a key_check made elsewhere (advanced)
   obsyncd [-data DIR] device add [-max N] NAME   prints the device token once
+  obsyncd [-data DIR] device limit [N]      show / store the active-device limit (0 = remove)
   obsyncd [-data DIR] device list
   obsyncd [-data DIR] device revoke NAME
   obsyncd [-data DIR] verify                integrity_check + re-hash every blob
@@ -145,17 +147,46 @@ func device(st *Store, args []string) {
 	switch {
 	case args[0] == "add":
 		af := flag.NewFlagSet("device add", flag.ExitOnError)
-		max := af.Int("max", maxDevices(), "active device limit (default $OBSYNC_MAX_DEVICES, else 10)")
+		max := af.Int("max", maxDevices(), "active device limit if none is stored (default $OBSYNC_MAX_DEVICES, else 10)")
 		af.Parse(args[1:])
 		if af.NArg() != 1 {
 			flag.Usage()
 			os.Exit(2)
 		}
-		tok, err := st.AddDevice(af.Arg(0), *max)
+		maxGiven := false
+		af.Visit(func(f *flag.Flag) { maxGiven = maxGiven || f.Name == "max" })
+		stored, err := st.DeviceLimit()
+		if err != nil {
+			log.Fatal(err)
+		}
+		limit, err := effectiveLimit(stored, maxGiven, *max)
+		if err != nil {
+			log.Fatal(err)
+		}
+		tok, err := st.AddDevice(af.Arg(0), limit)
 		if err != nil {
 			log.Fatal(err)
 		}
 		fmt.Println(tok)
+	case args[0] == "limit" && len(args) <= 2:
+		if len(args) == 2 {
+			n, err := strconv.Atoi(args[1])
+			if err != nil || n < 0 {
+				log.Fatal("usage: obsyncd device limit [N]   (0 removes the stored limit)")
+			}
+			if err := st.SetDeviceLimit(n); err != nil {
+				log.Fatal(err)
+			}
+		}
+		n, err := st.DeviceLimit()
+		if err != nil {
+			log.Fatal(err)
+		}
+		if n == 0 {
+			fmt.Printf("no stored limit (device add uses -max, default %d)\n", maxDevices())
+		} else {
+			fmt.Printf("device limit: %d active devices\n", n)
+		}
 	case args[0] == "list":
 		ds, err := st.Devices()
 		if err != nil {

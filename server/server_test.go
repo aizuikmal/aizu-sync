@@ -447,3 +447,39 @@ func TestMaxDevicesEnv(t *testing.T) {
 		t.Fatal("garbage should fall back")
 	}
 }
+
+func TestStoredDeviceLimit(t *testing.T) {
+	e := newEnv(t) // mac-a is device 1
+	if n, err := e.st.DeviceLimit(); err != nil || n != 0 {
+		t.Fatalf("fresh vault: %d %v", n, err)
+	}
+	if err := e.st.SetDeviceLimit(2); err != nil {
+		t.Fatal(err)
+	}
+	if n, _ := e.st.DeviceLimit(); n != 2 {
+		t.Fatalf("stored: %d", n)
+	}
+	lim, err := effectiveLimit(2, false, 10)
+	if err != nil || lim != 2 {
+		t.Fatalf("stored limit must win over the default: %d %v", lim, err)
+	}
+	if _, err := effectiveLimit(2, true, 50); err == nil {
+		t.Fatal("-max must not bypass a stored limit")
+	}
+	if lim, _ := effectiveLimit(0, true, 5); lim != 5 {
+		t.Fatal("-max applies when nothing is stored")
+	}
+	if _, err := e.st.AddDevice("mac-b", lim); err != nil {
+		t.Fatal(err)
+	}
+	stored, _ := e.st.DeviceLimit()
+	if _, err := e.st.AddDevice("third", stored); !errors.Is(err, ErrDeviceLimit) {
+		t.Fatalf("3rd device over stored limit 2: %v", err)
+	}
+	if err := e.st.SetDeviceLimit(0); err != nil {
+		t.Fatal(err)
+	}
+	if n, _ := e.st.DeviceLimit(); n != 0 {
+		t.Fatal("0 should remove the limit")
+	}
+}
