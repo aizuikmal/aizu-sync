@@ -65,7 +65,13 @@ export function isMergeable(path: string): boolean {
  *  Windows; upper-then-lower also catches "ſ" and the Kelvin sign) and without
  *  the trailing dots/spaces Windows drops. Over-matching here only skips a file. */
 function fold(name: string): string {
-  return name.normalize("NFKC").toUpperCase().toLowerCase().replace(/[. ]+$/, "");
+  return visible(name).toUpperCase().toLowerCase().replace(/[. ]+$/, "");
+}
+
+/** NFKC without default-ignorable characters (zero-width etc.), which some
+ *  filesystems skip when comparing names. */
+function visible(name: string): string {
+  return name.normalize("NFKC").replace(/\p{Default_Ignorable_Code_Point}/gu, "");
 }
 
 /** v1 syncs vault content only: never .obsidian, trash, or OS litter. */
@@ -77,13 +83,20 @@ export function isExcluded(path: string, configDir = ".obsidian"): boolean {
 }
 
 /** A path another device sent us is only ever written if it is a plain relative
- *  vault path outside the excluded areas: no "..", absolute or empty segments,
- *  backslashes, colons, control characters or trailing dots/spaces, and never
- *  into the config folder under any spelling the filesystem would accept. */
+ *  vault path. Obsidian never lists dot-files or dot-folders, so no real device
+ *  sends one: any segment starting with "." (after dropping invisible
+ *  characters) is refused, which keeps every spelling of .obsidian, .trash and
+ *  .git out. Also refused: absolute or empty segments, backslashes, control
+ *  characters, ":" (Windows streams), trailing dots/spaces (Windows drops them)
+ *  and a top-level Windows 8.3 short name such as OBSIDI~1. */
 export function isSafeRemotePath(path: string, configDir = ".obsidian"): boolean {
   if (!path || path.length > 1024 || /[\\\x00-\x1f\x7f]/.test(path) || path.startsWith("/")) return false;
-  // trailing dot/space and ":" (Windows streams) let two names reach the same file
-  if (path.split("/").some((seg) => seg === "" || seg === "." || seg === ".." || /[. ]$/.test(seg) || seg.includes(":"))) return false;
+  const segs = path.split("/");
+  if (segs.some((seg) => {
+    const v = visible(seg);
+    return v === "" || v.startsWith(".") || /[. ]$/.test(v) || v.includes(":");
+  })) return false;
+  if (/~\d/.test(segs[0])) return false;
   return !isExcluded(path, configDir);
 }
 

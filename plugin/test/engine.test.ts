@@ -286,6 +286,9 @@ describe("engine", () => {
     await rogueCommit(".obsidian./plugins/evil/main.js", "Windows drops the trailing dot");
     await rogueCommit(".obſidian/plugins/evil/main.js", "long s folds to s");
     await rogueCommit("notes/x.md:stream", "NTFS stream");
+    await rogueCommit(".obs\u200bidian/plugins/evil/main.js", "zero-width space");
+    await rogueCommit("OBSIDI~1/plugins/evil/main.js", "Windows 8.3 alias");
+    await rogueCommit("notes/.hidden.md", "Obsidian never syncs dot-files");
     await rogueCommit("../escape.md", "out");
     await rogueCommit("dir//x.md", "odd");
     await rogueCommit("notes/also-fine.md", "fine too\n");

@@ -55,8 +55,12 @@ The repository includes a randomized simulator (`sim/run.ts`). It runs three dev
 - **What the server can see:** file sizes, timing, which device made each change, and how many files there are.
 - **What a malicious server could still do:** it can't read or forge content, but it controls *freshness*. It could withhold new changes, or present an older version you really did write as the current one. Nothing is lost (every version stays in history), but commits aren't yet signed into a per-file chain that would detect this.
 - **Paths from other devices are checked before anything is written:**
-  - No `..`, absolute paths, control characters, colons, or names ending in a dot or space.
-  - Nothing ever goes into `.obsidian/`, `.trash/` or `.git/` under any spelling the filesystem would accept: names are case-folded, and the trailing dots and spaces that Windows ignores are stripped, so `.OBSIDIAN` and `.obsidian.` are caught too.
+  - Obsidian never lists hidden files or folders, so a real device never sends one. Any path with a part starting with `.` is refused, after invisible characters are removed. That keeps every spelling of `.obsidian/`, `.trash/` and `.git/` out (`.OBSIDIAN`, `.obsidian.`, zero-width tricks).
+  - Also refused:
+    - `..`, absolute paths and control characters;
+    - colons (Windows streams);
+    - names ending in a dot or space;
+    - a top-level Windows short name like `OBSIDI~1`.
   - This also covers restoring from history.
 
 ### Access
