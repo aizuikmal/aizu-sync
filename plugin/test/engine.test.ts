@@ -281,6 +281,11 @@ describe("engine", () => {
     a.vault.put("ok.md", "fine\n");
     await a.engine.sync();
     await rogueCommit(".obsidian/plugins/evil/main.js", "module.exports = pwn");
+    await rogueCommit(".OBSIDIAN/plugins/evil/main.js", "same folder on case-insensitive disks");
+    await rogueCommit(".Trash/x.md", "trash");
+    await rogueCommit(".obsidian./plugins/evil/main.js", "Windows drops the trailing dot");
+    await rogueCommit(".obſidian/plugins/evil/main.js", "long s folds to s");
+    await rogueCommit("notes/x.md:stream", "NTFS stream");
     await rogueCommit("../escape.md", "out");
     await rogueCommit("dir//x.md", "odd");
     await rogueCommit("notes/also-fine.md", "fine too\n");

@@ -53,6 +53,11 @@ The repository includes a randomized simulator (`sim/run.ts`). It runs three dev
 - **Passphrase:** set once by the admin on the server (`obsyncd set-passphrase`). The server keeps only a *key check* derived from it, never the passphrase. A device with the wrong passphrase is refused before it can upload anything. Devices cache the derived key, not the passphrase.
 - **Integrity:** a device verifies every download against its MAC, so a tampered blob is rejected.
 - **What the server can see:** file sizes, timing, which device made each change, and how many files there are.
+- **What a malicious server could still do:** it can't read or forge content, but it controls *freshness*. It could withhold new changes, or present an older version you really did write as the current one. Nothing is lost (every version stays in history), but commits aren't yet signed into a per-file chain that would detect this.
+- **Paths from other devices are checked before anything is written:**
+  - No `..`, absolute paths, control characters, colons, or names ending in a dot or space.
+  - Nothing ever goes into `.obsidian/`, `.trash/` or `.git/` under any spelling the filesystem would accept: names are case-folded, and the trailing dots and spaces that Windows ignores are stripped, so `.OBSIDIAN` and `.obsidian.` are caught too.
+  - This also covers restoring from history.
 
 ### Access
 - **Device tokens:** every request needs a per-device bearer token (256-bit, stored hashed). Tokens can be revoked one at a time, and a revoked device's live connection is closed.

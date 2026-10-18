@@ -2,7 +2,7 @@ import { Notice, Platform, Plugin, TFile, normalizePath } from "obsidian";
 import { Api, ApiError } from "./core/api";
 import { Keyring } from "./core/crypto";
 import { GuardPausedError, Status, SyncEngine, VaultNotReadyError, WrongPassphraseError } from "./core/engine";
-import { fromB64, isMergeable, toB64, utf8d } from "./core/util";
+import { fromB64, isMergeable, isSafeRemotePath, toB64, utf8d } from "./core/util";
 import { IdbState, ObsidianVault, obsidianTransport } from "./obsidian-vault";
 import { DeletedModal, GuardModal, HistoryModal, SettingsTab } from "./ui";
 
@@ -266,6 +266,11 @@ export default class AizuSync extends Plugin {
   }
 
   private async restoreNew(path: string, data: Uint8Array): Promise<boolean> {
+    // history paths come from other devices: same gate as a normal pull
+    if (!isSafeRemotePath(path, this.app.vault.configDir)) {
+      new Notice(`Aizu Sync: refusing to restore to an unsafe path (${path})`);
+      return false;
+    }
     return new ObsidianVault(this.app).create(normalizePath(path), data);
   }
 

@@ -61,20 +61,29 @@ export function isMergeable(path: string): boolean {
   return dot > path.lastIndexOf("/") && TEXT_EXT.has(path.slice(dot + 1).toLowerCase());
 }
 
+/** A name as a forgiving filesystem may resolve it: case-folded (macOS, iOS and
+ *  Windows; upper-then-lower also catches "ſ" and the Kelvin sign) and without
+ *  the trailing dots/spaces Windows drops. Over-matching here only skips a file. */
+function fold(name: string): string {
+  return name.normalize("NFKC").toUpperCase().toLowerCase().replace(/[. ]+$/, "");
+}
+
 /** v1 syncs vault content only: never .obsidian, trash, or OS litter. */
 export function isExcluded(path: string, configDir = ".obsidian"): boolean {
-  const first = path.split("/")[0];
-  if (first === configDir || first === ".trash" || first === ".git") return true;
+  const first = fold(path.split("/")[0]);
+  if (first === fold(configDir) || first === ".trash" || first === ".git") return true;
   const base = path.slice(path.lastIndexOf("/") + 1);
   return base === ".DS_Store" || base.startsWith("._") || base === "Thumbs.db";
 }
 
 /** A path another device sent us is only ever written if it is a plain relative
  *  vault path outside the excluded areas: no "..", absolute or empty segments,
- *  backslashes or control characters, and never into the config folder. */
+ *  backslashes, colons, control characters or trailing dots/spaces, and never
+ *  into the config folder under any spelling the filesystem would accept. */
 export function isSafeRemotePath(path: string, configDir = ".obsidian"): boolean {
   if (!path || path.length > 1024 || /[\\\x00-\x1f\x7f]/.test(path) || path.startsWith("/")) return false;
-  if (path.split("/").some((seg) => seg === "" || seg === "." || seg === "..")) return false;
+  // trailing dot/space and ":" (Windows streams) let two names reach the same file
+  if (path.split("/").some((seg) => seg === "" || seg === "." || seg === ".." || /[. ]$/.test(seg) || seg.includes(":"))) return false;
   return !isExcluded(path, configDir);
 }
 
