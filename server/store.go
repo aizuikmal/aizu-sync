@@ -8,7 +8,9 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
+	"strconv"
 	"sync"
 	"time"
 
@@ -161,9 +163,16 @@ func hashToken(tok string) string {
 	return hex.EncodeToString(h[:])
 }
 
-// MaxDevices is the default for how many devices may hold an active token at once
-// (`device add -max N` overrides it).
+// MaxDevices is the default for how many devices may hold an active token at once.
+// $OBSYNC_MAX_DEVICES changes the default; `device add -max N` overrides both.
 const MaxDevices = 10
+
+func maxDevices() int {
+	if n, err := strconv.Atoi(os.Getenv("OBSYNC_MAX_DEVICES")); err == nil && n > 0 {
+		return n
+	}
+	return MaxDevices
+}
 
 var ErrDeviceLimit = errors.New("device limit reached; revoke a device first")
 

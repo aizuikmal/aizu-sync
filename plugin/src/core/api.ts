@@ -96,11 +96,15 @@ export class Api {
     return JSON.parse((await this.call(method, path, body)).text()) as T;
   }
 
+  /** Raw authenticated request, for extensions (see ext.ts). */
+  async request(method: HttpRequest["method"], path: string, body?: Uint8Array): Promise<Uint8Array> {
+    return (await this.call(method, path, body)).bytes();
+  }
+
   vault() {
     return this.json<VaultInfo>("GET", "/v1/vault");
   }
 
-  /** true if set now, false if another device already set it. */
   state(includeDeleted = true) {
     return this.json<{ head: number; files: FileMeta[] }>("GET", `/v1/state${includeDeleted ? "?deleted=1" : ""}`);
   }

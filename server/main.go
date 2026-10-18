@@ -28,7 +28,7 @@ const usage = `obsyncd — aizu-sync server
   obsyncd [-data DIR] init [-iters N]       create the vault (salt, KDF params)
   obsyncd [-data DIR] set-passphrase [-generate]  set the vault passphrase (once; never stored)
   obsyncd [-data DIR] set-key-check         stdin: a key_check made elsewhere (advanced)
-  obsyncd [-data DIR] device add [-max 10] NAME  prints the device token once
+  obsyncd [-data DIR] device add [-max N] NAME   prints the device token once
   obsyncd [-data DIR] device list
   obsyncd [-data DIR] device revoke NAME
   obsyncd [-data DIR] verify                integrity_check + re-hash every blob
@@ -145,7 +145,7 @@ func device(st *Store, args []string) {
 	switch {
 	case args[0] == "add":
 		af := flag.NewFlagSet("device add", flag.ExitOnError)
-		max := af.Int("max", MaxDevices, "active device limit")
+		max := af.Int("max", maxDevices(), "active device limit (default $OBSYNC_MAX_DEVICES, else 10)")
 		af.Parse(args[1:])
 		if af.NArg() != 1 {
 			flag.Usage()

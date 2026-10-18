@@ -177,9 +177,31 @@ obsyncd [-data DIR] snapshot OUT.db               consistent DB copy for backups
 obsyncd [-data DIR] gc [-apply]                   list (or remove) unreferenced blobs older than 1h
 ```
 
-`-data` defaults to `$OBSYNC_DATA`, otherwise `/var/lib/obsync`. With Docker, run these as `docker compose exec obsyncd obsyncd …`.
+`-data` defaults to `$OBSYNC_DATA`, otherwise `/var/lib/obsync`. `device add` refuses more active devices than `-max`, which defaults to `$OBSYNC_MAX_DEVICES`, otherwise 10. With Docker, run these as `docker compose exec obsyncd obsyncd …`.
 
 **Lost a device?** Run `device revoke NAME`. Its token stops working immediately.
+
+## Extensions (add-on plugins)
+
+Other plugins can build on a connected Aizu Sync, using the vault key and the server's device authentication, without asking for the passphrase or a token:
+
+```ts
+const ext = app.plugins.getPlugin("aizu-sync")?.extension(); // undefined until connected
+if (ext) {
+  const ct = await ext.encrypt(bytes, "myaddon:" + id);            // AES-256-GCM, vault key, bound to the aad
+  await ext.request("PUT", `/v1/myaddon/${id}`, ct);               // Bearer-authenticated, to the sync server's URL
+  const back = await ext.decrypt(await ext.request("GET", `/v1/myaddon/${id}`), "myaddon:" + id);
+}
+// re-check after (re)connecting
+plugin.registerEvent(app.workspace.on("aizu-sync:connected", refresh));
+```
+
+- `obsyncd` itself only serves the sync API. An add-on that needs storage runs its own small service, and your reverse proxy routes a path prefix to it, e.g. `/v1/myaddon/*`.
+- The service can check a device token by calling `GET /v1/vault` on obsyncd with it: 200 means valid, 401 means unknown or revoked.
+- **Guards:**
+  - Add-ons can't use the sync engine's own AADs (`blob:`, `path:`, `keycheck`).
+  - Requests must go to a plain `/v1/...` path.
+- Any Obsidian plugin can already read the vault, including this plugin's settings, so the hook grants nothing a plugin couldn't already do. Only install add-ons you trust.
 
 ## Backups
 

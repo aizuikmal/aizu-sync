@@ -1,6 +1,7 @@
 import { Notice, Platform, Plugin, TFile, normalizePath } from "obsidian";
 import { Api, ApiError } from "./core/api";
 import { Keyring } from "./core/crypto";
+import { AizuSyncExtension, makeExtension } from "./core/ext";
 import { GuardPausedError, Status, SyncEngine, VaultNotReadyError, WrongPassphraseError } from "./core/engine";
 import { fromB64, isMergeable, isSafeRemotePath, toB64, utf8d } from "./core/util";
 import { IdbState, ObsidianVault, obsidianTransport } from "./obsidian-vault";
@@ -30,6 +31,7 @@ export default class AizuSync extends Plugin {
   connectError = "";
   private engine?: SyncEngine;
   private api?: Api;
+  private ext?: AizuSyncExtension;
   private ws?: WebSocket;
   private wsBackoff = 1000;
   private timer?: number;
@@ -173,6 +175,8 @@ export default class AizuSync extends Plugin {
       return;
     }
     this.engine = engine;
+    this.ext = makeExtension(this.api, keys);
+    this.app.workspace.trigger("aizu-sync:connected");
 
     if (!this.registered) {
       this.registered = true;
@@ -197,9 +201,15 @@ export default class AizuSync extends Plugin {
     this.schedule(0);
   }
 
+  /** For add-on plugins: undefined until connected. See core/ext.ts. */
+  extension(): AizuSyncExtension | undefined {
+    return this.engine ? this.ext : undefined;
+  }
+
   private wake() {
     if (!this.ws || this.ws.readyState > WebSocket.OPEN) this.connectWs();
     this.schedule(0);
+    if (this.engine) this.app.workspace.trigger("aizu-sync:connected"); // add-ons retry after resume
   }
 
   private connectWs() {

@@ -432,3 +432,18 @@ func TestKeyCheckMatchesPlugin(t *testing.T) {
 		t.Fatalf("generated %q", p)
 	}
 }
+
+func TestMaxDevicesEnv(t *testing.T) {
+	t.Setenv("OBSYNC_MAX_DEVICES", "")
+	if maxDevices() != MaxDevices {
+		t.Fatal("default")
+	}
+	t.Setenv("OBSYNC_MAX_DEVICES", "3")
+	if maxDevices() != 3 {
+		t.Fatal("env not used")
+	}
+	t.Setenv("OBSYNC_MAX_DEVICES", "zero")
+	if maxDevices() != MaxDevices {
+		t.Fatal("garbage should fall back")
+	}
+}
